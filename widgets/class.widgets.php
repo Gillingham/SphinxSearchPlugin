@@ -18,7 +18,10 @@ abstract class Widgets {
      */
     private function Connect() {
         $this->SphinxClient->SetServer($this->Settings['Install']->Host, (int) $this->Settings['Install']->Port); //must start searchd in order to connect...or else conection will be refused
-        $this->SphinxClient->SetMaxQueryTime((int) $this->Settings['Admin']->MaxQueryTime); // Sets maximum search query time, in milliseconds. Default valus is 0 which means "do not limit".
+        if (!isset($this->Settings['Admin']->MaxQueryTime))
+            $this->Settings['Admin']->MaxQueryTime = 0;
+        else
+            $this->SphinxClient->SetMaxQueryTime((int) $this->Settings['Admin']->MaxQueryTime); // Sets maximum search query time, in milliseconds. Default valus is 0 which means "do not limit".
         //$this->SphinxClient->SetRetries((int) $this->Settings['Admin']->RetriesCount, (int)$this->Settings['Admin']->RetriesDelay );
         $this->SphinxClient->SetMatchMode(SPH_MATCH_EXTENDED2); //use this since using boolean operators
         $this->SphinxClient->SetRankingMode(SPH_RANK_PROXIMITY_BM25);
@@ -109,7 +112,7 @@ abstract class Widgets {
                 $SQL = clone Gdn::SQL();
         $SQL->Reset();
         $SQL = Gdn::SQL();
-        $Prefix = C('Database.Prefix', 'GDN_');
+        $Prefix = C('Database.DatabasePrefix', 'GDN_');
         $WhereIn = $this->WhereIn('c.CommentID', $Matches['Comment']);
         //This query checks if the LastUserID and LastCommentID are Null.
         $Comment = $SQL->Query('
@@ -193,16 +196,21 @@ abstract class Widgets {
         $Offset = 0;
         $Return = array();
         foreach ($Matches['Comment'] as $Rating => $ID) {
-            if (array_key_exists($Offset, $Comment)) { //make sure the ID that sphinx returned is still a valid ID in the database
-                $Return[$Rating] = $Comment[$Offset];
-                $Offset++;
+            foreach ($Comment as $Off => $Data) {
+                if($Data->CommentID == $ID){
+                    $Return[$Rating] = $Data;
+                    break;
+                }
             }
         }
-        $Offset = 0;
+
+
         foreach ($Matches['Discussion'] as $Rating => $ID) {
-            if (array_key_exists($Offset, $Discussion)) {//make sure the ID that sphinx returned is still a valid ID in the database
-                $Return[$Rating] = $Discussion[$Offset];
-                $Offset++;
+            foreach ($Discussion as $Off => $Data) {
+                if($Data->DiscussionID == $ID){
+                    $Return[$Rating] = $Data;
+                    break;
+                }
             }
         }
         ksort($Return); //sort them back in their original ratings again
@@ -345,6 +353,9 @@ abstract class Widgets {
                 $Query .= ' ' . $Word;
             }
         }
+        $Query = html_entity_decode($Query,ENT_QUOTES, 'UTF-8'); // Deocodes Numeric character references ("&'<>)
+        if($Match != 'Extended')
+            $Query = $this->SphinxClient->EscapeString($Query);
 
         $TitlesOnly = (filter_input(INPUT_GET, 'titles', FILTER_SANITIZE_NUMBER_INT) == 1 ? 1 : 0); //checkbox - bool
         $WithReplies = (filter_input(INPUT_GET, 'WithReplies', FILTER_SANITIZE_NUMBER_INT) == 1 ? 1 : 0); //checkbox - bool

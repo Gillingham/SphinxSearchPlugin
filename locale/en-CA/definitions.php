@@ -27,7 +27,7 @@ $Definition['Most Views'] = 'Most Views';
 $Definition['Most Replies'] = 'Most Replies';
 $Definition['Classic'] = 'Classic';
 $Definition['Table'] = 'Table';
-$Definition['Sleek'] = 'Sleek';
+$Definition['Sleek'] = 'Sleak';
 $Definition['Simple'] = 'Simple';
 
 
@@ -36,6 +36,8 @@ $Definition['Search Results for Query'] = 'Search Results for Query';
 $Definition['Results'] = 'Results';
 $Definition['Result'] = 'Result';
 $Definition['Search Again :: Adv Search'] = 'Search Again :: Adv Search';
+$Definition['More Options'] = 'Syntax Help';
+$Definition['Less Options'] = 'Hide';
 
 //widgets
 $Definition['Related Discussions'] = 'Related Discussions';

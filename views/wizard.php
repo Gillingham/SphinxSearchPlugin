@@ -2,79 +2,6 @@
 if (!defined('APPLICATION'))
     exit();
 ?>
-<script type="text/javascript" charset="utf-8">
-
-    var once = false;
-
-    function addmsg(type, msg){
-        $("#messages").html(
-        "<div class='msg Inner "+ type +"'>"+ msg +"</div>"
-    );
-    }
-
-    function updatestatus(status){
-        $("#Status").html(
-        "<div class='StatusMsg'>"+ status +"</div>"
-    );
-    }
-
-    $('#ToggleWizard').click(function(){
-        once = false; //restart wizard toggle bit
-    });
-
-    function waitForMsg(){
-        var WebRoot = $("#WebRoot").val();
-        $.ajax({
-            dataType: "json",
-            type: "GET",
-            url: WebRoot+"/plugin/sphinxsearch/InstallPoll",
-
-            async: true, /* If set to non-async, browser shows page as "Loading.."*/
-            cache: false,
-            timeout:50000, /* Timeout in ms */
-
-            success: function(data){ /* called when request to barge.php completes */
-                if(data.Terminal == 'reload' && once != true){
-                    once = true; //don't enter here again
-                    window.setTimeout(function(){addmsg("new", 'Advancing in 5')},0);
-                    window.setTimeout(function(){addmsg("new", 'Advancing in 4')},2000);
-                    window.setTimeout(function(){addmsg("new", 'Advancing in 3')},4000);
-                    window.setTimeout(function(){addmsg("new", 'Advancing in 2')},6000);
-                    window.setTimeout(function(){addmsg("new", 'Advancing in 1')},8000);
-                    window.setTimeout(function(){
-                        $.ajax({
-                            type: 'POST',
-                            dataType: 'html',
-                            url: WebRoot + "/plugin/sphinxsearch/installwizard",
-                            data: "NextAction="+"test"
-                            //success: function(msg){alert(msg);}
-                        });
-                    }, 8000);
-                    window.setTimeout(function(){window.location.replace(WebRoot + "/plugin/sphinxsearch/installwizard")},9000);
-
-
-                }
-                else if(once != true)
-                    addmsg("new", data.Terminal); /* Add response to a .msg div (with the "new" class)*/
-                updatestatus(data.Status);
-                setTimeout(
-                'waitForMsg()', /* Request next message */
-                1000 /* ..after 1 seconds */
-            );
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown){
-                addmsg("error", textStatus + " (" + errorThrown + ")");
-                setTimeout(
-                'waitForMsg()', /* Try again after.. */
-                "15000"); /* milliseconds (15seconds) */
-            }
-        });
-    };
-
-    $(document).ready(function(){
-        waitForMsg(); /* Start the inital request */
-    });
-</script>
 
 <style>
     .Finish{
@@ -110,6 +37,11 @@ if (!defined('APPLICATION'))
         color: red;
     }
 
+    /*Override for the little astrix to line up properly*/
+    form ul li span {
+        display: inline !important;
+    }
+
 </style>
 <div class="Help Aside">
     <?php
@@ -134,7 +66,7 @@ if (!defined('APPLICATION'))
 <br/>
 <br/>
 <?php
-echo $this->Form->Open(array('id'=>'Form'));
+echo $this->Form->Open(array('id' => 'Form'));
 echo $this->Form->Errors();
 $Settings = $this->Data('Settings');
 ?>
@@ -151,18 +83,24 @@ $Settings = $this->Data('Settings');
     <h1>Step 1: </h1>
     <ul>
         <li><?php
-    echo $this->Form->Label('Configuration Prefix:', 'Plugin.SphinxSearch.Prefix');
-    echo $this->Form->Textbox('Plugin.SphinxSearch.Prefix', array_merge($Disabled, array('value' => $Settings['Install']->Prefix)));
-    ?></li>
+            echo $this->Form->Label('Configuration Prefix:' . "<span class='required' style='font-weight: bold; color: #B94A48'>*</span>", 'Plugin.SphinxSearch.Prefix'); ?> <?php
+            echo $this->Form->Textbox('Plugin.SphinxSearch.Prefix', array_merge($Disabled, array('value' => $Settings['Install']->Prefix)));
+            ?></li>
+        <li><span style="font-style:italic">This is used in the sphinx config file to identify between this install and other configurations already present. You can
+            typically just leave this as the default setting</span>
+        </li>
         <li><?php
-        echo $this->Form->Label('Port', 'Plugin.SphinxSearch.Port');
-        echo $this->Form->Textbox('Plugin.SphinxSearch.Port', array_merge($Disabled, array($Disabled, 'value' => $Settings['Install']->Port)));
-    ?></li>
+            echo $this->Form->Label('Port:' . "<span class='required' style='font-weight: bold; color: #B94A48'>*</span>", 'Plugin.SphinxSearch.Port');
+            echo $this->Form->Textbox('Plugin.SphinxSearch.Port', array_merge($Disabled, array($Disabled, 'value' => $Settings['Install']->Port)));
+            ?></li>
+        <li><span style="font-style:italic">This is the port that sphinx (searchd daemon) listens on for active connections. 9312 is the default</span>
+        </li>
         <li><?php
-        echo $this->Form->Label('* Host', 'Plugin.SphinxSearch.Host');
-        echo $this->Form->Textbox('Plugin.SphinxSearch.Host', array_merge($Disabled, array($Disabled, 'value' => $Settings['Install']->Host)));
-    ?></li>
-        <li><span style="font-style:italic">* Use "127.0.0.1" (without quotes) to force TCP/IP usage. Recommended to first try "localhost" (without quotes)</span>
+            echo $this->Form->Label('Host:' . "<span class='required' style='font-weight: bold; color: #B94A48'>*</span>", 'Plugin.SphinxSearch.Host');
+            echo $this->Form->Textbox('Plugin.SphinxSearch.Host', array_merge($Disabled, array($Disabled, 'value' => $Settings['Install']->Host)));
+            ?></li>
+        <li><span style="font-style:italic">This is where sphinx (searchd daemon) is running from, NOT where your database necessarily is located</li>
+        <li><span style="font-style:italic">Use "127.0.0.1" (without quotes) to force TCP/IP usage. Recommended to first try "localhost" (without quotes)</span>
         </li>
     </ul>
     <br/>
@@ -172,69 +110,15 @@ $Settings = $this->Data('Settings');
     <?php $DisabledExisting = $Settings['Wizard']->AutoDetected == FALSE ? array('Disabled' => 'Disabled', 'Default' => 'NotDetected') : array(); ?>
     <?php $InstallColor = $DisabledExisting == array() ? 'green' : 'red'; ?>
     <h1>Step 2: </h1>
-    <div id="MainWrapper">
-        <div id="RightWrapper">
-            <div id="Right">
-                <div class="Info">
-                    <?php echo $this->Form->Label('Run in background: ', 'Background'); ?>
-                    <?php echo $this->Form->RadioList('Background', array(TRUE => 'True', FALSE => 'False'), array('list' => FALSE, 'default' => 'False')) ?>
-                    <ul class="Settings">
-                        <li class="FootNote">This lets all of the install commands to run in the background. Useful for long operations.If running in background, terminal output is presented below in the black box.</li>
-                        <li class="FootNote">Wizard will proceed automatically when finished when running in background!! Do NOT proceed manually!</li>
-                    </ul>
-                </div>
-
-                <div id="Status">
-                </div>
-                <div id="messages">
-                    <div class="msg">
-                        Command Line Output
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="Left">
             <div class="Inner">
                 <ul>
                     <li>
-                        <?php
-                        echo $this->Form->RadioList('Plugin.SphinxSearch.Detected', array('Manual' => '* Use existing binaries'), array_merge($Disabled, array('Default' => 'NotDetected')));
-                        ?>
-                    </li>
-                    <li>
-                        <?php
-                        //never disable this option
-                        echo $this->Form->Label('Manual Indexer Path:', 'Plugin.SphinxSearch.ManualIndexerPath');
-                        echo $this->Form->Textbox('Plugin.SphinxSearch.ManualIndexerPath', array_merge($Disabled, array(), array('value' => $Settings['Install']->ManualIndexerPath)));
-                        ?></li>
-                    <li><?php
-                    echo $this->Form->Label('Manual Searchd Path', 'Plugin.SphinxSearch.ManualSearchdPath');
-                    echo $this->Form->Textbox('Plugin.SphinxSearch.ManualSearchdPath', array_merge($Disabled, array(), array('value' => $Settings['Install']->ManualSearchdPath)));
-                        ?></li>
-                    <li><?php
-                    echo $this->Form->Label('Manual Conf Path', 'Plugin.SphinxSearch.ManualConfPath');
-                    echo $this->Form->Textbox('Plugin.SphinxSearch.ManualConfPath', array_merge($Disabled, array(), array('value' => $Settings['Install']->ManualConfPath)));
-                        ?></li>
-
-
-                    <li>
-                        <br/>
-                    </li>
-
                     <?php
-                    echo $this->Form->RadioList('Plugin.SphinxSearch.Detected', array('NotDetected' => '<span style="color: green">** Install Prepackaged Sphinx</span>'), array_merge($Disabled, array('Default' => 'NotDetected')));
-                    ?>
+                        echo $this->Form->Label('Full Text of existing contents of sphinx.conf '. "<span class='required' style='font-weight: bold; color: #B94A48'>*</span>", 'Plugin.SphinxSearch.ConfText');
+                        echo $this->Form->Textbox('Plugin.SphinxSearch.ConfText', array_merge($Disabled, array(), array('value' => $Settings['Install']->ConfText, 'Multiline' => true)));
+                        ?></li>
+                    <li><span style="font-style:italic">Paste your default sphinx configuration file contents here</li>
 
-                    <li><?php
-                echo $this->Form->Label(T('Install Path'), 'Plugin.SphinxSearch.InstallPath');
-                echo $this->Form->Textbox('Plugin.SphinxSearch.InstallPath', array_merge($Disabled, array('value' => $Settings['Install']->InstallPath)));
-                    ?>
-                        <span style="font-style:italic">Without the trailing slash</span>
-                    </li>
-                    <li><br/>
-                        <span style="font-style:italic">* Example: /usr/bin/sphinx/searchd</span>
-                        <span style="font-style:italic;">** This could take upwards of 20 minutes to install depending on system specs (mostly RAM limitations)</span></li>
                 </ul>
 
             <?php endif ?>
@@ -246,29 +130,57 @@ $Settings = $this->Data('Settings');
                 ?>
             <?php endif ?>
         </div>
-    </div>
     <?php if ($Settings['Wizard']->Config) : ?>
+    <?php $Disabled = $this->Data['NextAction'] != 'Config' ? array('Disabled' => 'Disabled') : array(); ?>
         <div style="clear: both"></div>
-        <h1>Step 3: </h1>
+        <h1>Sphinx Config Generation Finish</h1>
+
         <br/>
-        <ul>
+            <span class="Finish"><?php echo T('Congratulations! The Sphinx configuration file has been generated successfully!') ?></span>
+            <br/>
+            <ul><li>
+                <?php
+                    echo $this->Form->Label('Full Text of NEW sphinx.conf - Copy this into your existing sphinx.conf after making a local copy of original', 'OutputText');
+                    echo $this->Form->Textbox('OutputText', array('value' => $Settings['Install']->ConfText, 'Multiline' => true));
+                        ?>
+                </li>
+                <li>Sphinx is now ready to be run. Save your new sphinx.conf and then start the indexer. When indexing is finished, start searchd. Now search!  </li>
+                <li>Example linux commands to index and start sphinx daemon (your indexer/searchd paths may differ): </li>
+                <li>Start indexing: /user/bin/indexer --all --config /etc/sphinx/sphinx.conf</li>
+                <li>Start searchd: /usr/bin/searchd --config /etc/sphinx/sphinx.conf</li>
+            </ul>
+            <br/>
+            <div style="clear: both"></div>
+        <h1>Step 3 (Optional)</h1>
+        This step writes 3 cron files that will automatically invoke the sphinx indexer at a specific time. This step requires knowledge of your indexer and config path.
+            <ul>
+             <li>
+                        <?php
+                        //never disable this option
+                        echo $this->Form->Label('Indexer Path:', 'Plugin.SphinxSearch.IndexerPath');
+                        echo $this->Form->Textbox('Plugin.SphinxSearch.IndexerPath', array_merge($Disabled, array(), array('value' => $Settings['Install']->IndexerPath)));
+                        ?></li>
+            <li><span style="font-style:italic">The location of sphinx's indexer (ex: /usr/bin/indexer).</li>
+                    <li><?php
+                        echo $this->Form->Label('Conf Path:', 'Plugin.SphinxSearch.ConfPath');
+                        echo $this->Form->Textbox('Plugin.SphinxSearch.ConfPath', array_merge($Disabled, array(), array('value' => $Settings['Install']->ConfPath)));
+                        ?></li>
+                    <li><span style="font-style:italic">The location of sphinx's config file (ex: /etc/sphinx/sphinx.conf).</li>
+
             <li><span>Click the button below to write the config file and CRON tasks</span></li>
         </ul>
         <br/>
     <?php endif ?>
 
     <?php if ($Settings['Wizard']->Installed) : ?>
-        <h3>FINISH</h3>
+        <h3>Cron File Generation Finish</h3>
         <div class="Data">
             <br/>
-            <span class="Finish"><?php echo T('Congraduations  Sphinx has been installed successfully!') ?></span>
+            <span class="Finish"><?php echo T('Congratulations! The Cron configuration files have been generated successfully!') ?></span>
             <br/>
             <ul>
-                <li><?php echo Anchor('*View my custom Sphinx.conf file', 'plugin/sphinxsearch/viewfile/' . Gdn::Session()->TransientKey() . '?action=viewfile&file=conf', array('target'=>'_blank')); ?></li>
-                <li><?php echo Anchor('View my custom main cron file', 'plugin/sphinxsearch/viewfile/' . Gdn::Session()->TransientKey() . '?action=viewfile&file=maincron', array('target'=>'_blank')); ?></li>
-                <li><?php echo Anchor('View my custom delta cron file', 'plugin/sphinxsearch/viewfile/' . Gdn::Session()->TransientKey() . '?action=viewfile&file=deltacron', array('target'=>'_blank')); ?></li>
-
-                <li><span style="font-style:italic">* Contains your database username/password</span></li>
+                <li>The cron files can be viewed here: <b><?php echo PATH_PLUGINS . DS . 'SphinxSearch' . DS . 'cron'?></b></li>
+                <li><span style="font-style:italic">Note, the cron files may be invalid depending on your inputs to step 3. Redefine them inside the file itself</li>
             </ul>
         </div>
     <?php endif ?>
@@ -277,7 +189,8 @@ $Settings = $this->Data('Settings');
         <input type="hidden" id="Form_NextAction" name="Configuration/NextAction" value="<?php echo $this->Data['NextAction'] ?>" />
         <?php
         if (!$Settings['Wizard']->Installed)
-            echo $this->Form->Close('Save and Continue'); else
+            echo $this->Form->Close('Save and Continue');
+        else
             echo '<div class="Finish">' . Wrap(Anchor('Return to Control Panel', 'plugin/sphinxsearch', 'SmallButton')) . "</div>";
         ?>
     <?php endif

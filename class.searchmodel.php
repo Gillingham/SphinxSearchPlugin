@@ -67,10 +67,11 @@ class SearchModel extends Gdn_Model {
 
     public function Search($Search, $Offset = 0, $Limit = 20) {
 
-        $AllSettings = SphinxFactory::BuildSettings();
-        $Settings = $AllSettings->GetAllSettings();
-        if ($Settings['Status']->SearchdRunning && $this->Settings['Status']->EnableSphinxSearch)
-            return FALSE; //sphinx is running...don't use default search
+        /**
+         * Override the default search from running right here! 
+         */
+         if(true) // Force this to be true while the sphinxsearch plugin is enabled!
+             return FALSE; //sphinx is running...don't use default search
         else {
             // If there are no searches then return an empty array.
             if (trim($Search) == '')
